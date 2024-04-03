@@ -1,0 +1,59 @@
+﻿
+@* Popup window for delete confirmation. *@
+
+<div class="modal" style="display: @(_isOpen ? "block" : "none")">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@Title</h5>
+                <button type="button" class="btn-close" aria-label="Close" @onclick="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>@Message</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="Confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnConfirmation { get; set; }
+
+    private bool _isOpen = false;
+
+    public void Open(string title, string message)
+    {
+        Title = title;
+        Message = message;
+        _isOpen = true;
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        _isOpen = false;
+        OnConfirmation.InvokeAsync(false);
+    }
+
+    private void Confirm()
+    {
+        _isOpen = false;
+        OnConfirmation.InvokeAsync(true);
+    }
+
+    private void Cancel()
+    {
+        _isOpen = false;
+        OnConfirmation.InvokeAsync(false);
+    }
+}

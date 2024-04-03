@@ -1,0 +1,150 @@
+﻿@page "/contact/index"
+@inject NavigationManager navigator
+@inject LocalStorage localStorage
+
+<div class="container">
+    <div class="row justify-content-center mb-4">
+        <div class="col">
+            <h3 class="text-center">Contact List</h3>
+        </div>
+    </div>
+
+    @if (contacts is not null && contacts.Any())
+    {
+        @* Sorting options. *@
+    <div class="row justify-content-start mb-4">
+        <div class="col-auto me-4">
+            <label for="sortCriteria" class="form-label">Sort By:</label>
+            <select class="form-select" @onchange="SortContacts">
+                <option value="FirstName">First Name</option>
+                <option value="LastName">Last Name</option>
+                <option value="Email">Email</option>
+            </select>
+        </div>
+        <div class="col-auto me-4">
+            <label for="sortOrder" class="form-label">Sort Order:</label>
+            <select class="form-select" @onchange="SortContacts">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+            </select>
+        </div>
+    </div>
+
+        @* Contact list table. *@
+        <div class="row">
+            <div class="col">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th scope="col">First Name</th>
+                                <th scope="col">Last Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Phone Number</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in contacts)
+                            {
+                                <tr>
+                                    <td>@item.FirstName</td>
+                                    <td>@item.LastName</td>
+                                    <td>@item.Email</td>
+                                    <td>@item.PhoneNumber</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm" @onclick="() => EditContact(item.Id)">Edit</button>
+                                        <button class="btn btn-danger btn-sm" @onclick="() => ShowDeleteConfirmation(Convert.ToString(item.Id))">Delete</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row justify-content-center mb-4">
+            <div class="col">
+                <p class="text-center">Contact list is empty</p>
+            </div>
+        </div>
+    }
+</div>
+
+<ConfirmDelete Title="Confirm Deletion" Message="Are you sure you want to delete this contact?" OnConfirmation="@HandleDeleteConfirmation" @ref="confirmationDialog" /> @* Confirm delete. *@
+
+@code {
+    private List<Contact> contacts;
+    private string contactToDeleteId;
+    private ConfirmDelete confirmationDialog;
+    private string sortStandard = "FirstName";
+    private string sortOrder = "asc";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadContacts();
+    }
+
+    private async Task LoadContacts()
+    {
+        contacts = await localStorage.GetAllContacts();
+        SortContacts(); // Sort contacts initially.
+    }
+
+    private void EditContact(int contactId)
+    {
+        navigator.NavigateTo($"/edit/{contactId}");
+    }
+
+    private void ShowDeleteConfirmation(string contactId)
+    {
+        contactToDeleteId = contactId;
+        confirmationDialog.Open("Confirm Deletion", "Are you sure you want to delete this contact?");
+    }
+
+    private async Task HandleDeleteConfirmation(bool confirmed)
+    {
+        if (confirmed)
+        {
+            await localStorage.DeleteContact(int.Parse(contactToDeleteId));
+            await LoadContacts(); // Reload contacts after deletion.
+        }
+    }
+
+    private void SortContacts(ChangeEventArgs args = null)
+    {
+        // Update sortStandard and sortOrder based on selected option.
+        if (args != null)
+        {
+            var target = (string)args.Value;
+            if (target.StartsWith("asc") || target.StartsWith("desc"))
+            {
+                sortOrder = target;
+            }
+            else
+            {
+                sortStandard = target;
+            }
+        }
+
+        // Do sorting.
+        switch (sortStandard)
+        {
+            case "FirstName":
+                contacts = sortOrder == "asc" ? contacts.OrderBy(c => c.FirstName).ToList() : contacts.OrderByDescending(c => c.FirstName).ToList();
+                break;
+            case "LastName":
+                contacts = sortOrder == "asc" ? contacts.OrderBy(c => c.LastName).ToList() : contacts.OrderByDescending(c => c.LastName).ToList();
+                break;
+            case "Email":
+                contacts = sortOrder == "asc" ? contacts.OrderBy(c => c.Email).ToList() : contacts.OrderByDescending(c => c.Email).ToList();
+                break;
+        }
+
+        StateHasChanged();
+    }
+
+}
